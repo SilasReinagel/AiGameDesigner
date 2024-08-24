@@ -1,0 +1,25 @@
+{
+  "name": "ai-game-designer",
+  "version": "1.0.0",
+  "description": "AI-powered Game Design Document (GDD) generator",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js",
+    "watch": "nodemon --watch src --watch public -e js,html,css --exec \"npm run dev\""
+  },
+  "keywords": ["ai", "game design", "gdd"],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "openai": "^4.0.0",
+    "express": "^4.17.1",
+    "uuid": "^8.3.2",
+    "marked": "^4.0.12",
+    "dotenv": "^16.0.3",
+    "open": "^8.4.0"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.22"
+  }
+}

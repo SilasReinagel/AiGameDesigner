@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Game Designer</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        textarea { width: 100%; height: 100px; }
+        button { margin-top: 10px; }
+        pre { white-space: pre-wrap; word-wrap: break-word; }
+        .step { margin-bottom: 15px; border: 1px solid #ccc; padding: 10px; }
+        .active { background-color: #f0f0f0; }
+        #user-input { margin-top: 20px; }
+        #stop-button { display: none; margin-left: 10px; }
+    </style>
+</head>
+<body>
+    <h1>AI Game Designer</h1>
+    <form id="idea-form">
+        <label for="base-idea">Enter your base game idea:</label><br>
+        <textarea id="base-idea" required></textarea><br>
+        <button type="submit">Generate GDD</button>
+        <button id="stop-button" type="button">Stop Generation</button>
+    </form>
+    <div id="user-input" style="display: none;">
+        <textarea id="user-feedback" placeholder="Provide feedback or suggestions..."></textarea>
+        <button id="send-feedback">Send Feedback</button>
+    </div>
+    <div id="progress"></div>
+    <div id="result"></div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const form = document.getElementById('idea-form');
+            const resultDiv = document.getElementById('result');
+            const progressDiv = document.getElementById('progress');
+
+            const steps = [
+                { id: 'base-idea', name: 'Base Idea', agent: 'User' },
+                { id: 'discussion', name: 'Discussion', agent: 'Game Designers, Gamer, and Critic' },
+                { id: 'gdd-writing', name: 'GDD Writing', agent: 'GDD Writer, Game Designers, and Project Manager' },
+                { id: 'concept-art', name: 'Concept Art', agent: 'Concept Artist' },
+                { id: 'final-gdd', name: 'Final GDD', agent: 'System' },
+                { id: 'production-manager', name: 'Production Manager', agent: 'Production Manager' }
+            ];
+
+            function updateProgress(currentStep, output = '') {
+                progressDiv.innerHTML = steps.map(step => `
+                    <div class="step ${step.id === currentStep ? 'active' : ''}">
+                        <strong>${step.name}</strong><br>
+                        Agent: ${step.agent}
+                        ${step.id === currentStep && output ? `<pre>${output}</pre>` : ''}
+                    </div>
+                `).join('');
+            }
+
+            updateProgress('base-idea');
+
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const baseIdea = document.getElementById('base-idea').value;
+                
+                resultDiv.innerHTML = 'Generating GDD... This may take a few minutes.';
+                updateProgress('base-idea', baseIdea);
+                
+                try {
+                    const response = await fetch('/generate-gdd', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ baseIdea }),
+                    });
+                    
+                    const reader = response.body.getReader();
+                    const decoder = new TextDecoder();
+
+                    while (true) {
+                        const { done, value } = await reader.read();
+                        if (done) break;
+                        
+                        const chunk = decoder.decode(value);
+                        const updates = chunk.split('\n').filter(Boolean).map(JSON.parse);
+                        
+                        updates.forEach(update => {
+                            if (update.type === 'progress') {
+                                updateProgress(update.step, update.output);
+                            } else if (update.type === 'result') {
+                                resultDiv.innerHTML = `
+                                    <h2>GDD Generated Successfully!</h2>
+                                    <p>Output folder: ${update.folderPath}</p>
+                                    <h3>Token Usage:</h3>
+                                    <pre>${update.tokenUsage}</pre>
+                                    <h3>QA Results:</h3>
+                                    <div>
+                                        <h4>Base Idea QA:</h4>
+                                        <pre>${update.qaResults.baseIdeaQA}</pre>
+                                        <h4>Discussion QA:</h4>
+                                        <pre>${update.qaResults.discussionQA}</pre>
+                                        <h4>GDD Writing QA:</h4>
+                                        <pre>${update.qaResults.gddQA}</pre>
+                                        <h4>Concept Art QA:</h4>
+                                        <pre>${update.qaResults.artQA}</pre>
+                                        <h4>Final GDD QA:</h4>
+                                        <pre>${update.qaResults.finalGddQA}</pre>
+                                    </div>
+                                    <h3>Final GDD:</h3>
+                                    <div>${update.finalGdd}</div>
+                                `;
+                            }
+                        });
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    resultDiv.innerHTML = 'Error generating GDD. Please try again.';
+                }
+            });
+        });
+    </script>
+</body>
+</html>
